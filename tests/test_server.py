@@ -20,6 +20,13 @@ class ServerHelpersTest(unittest.TestCase):
         self.assertIn("height<=1080", joined)
         self.assertIn("--merge-output-format", args)
 
+    def test_bilibili_network_args_include_origin(self):
+        args = server.ytdlp_network_args("https://www.bilibili.com/video/BV123")
+        self.assertIn("--referer", args)
+        self.assertIn("https://www.bilibili.com/", args)
+        self.assertIn("--add-header", args)
+        self.assertIn("Origin:https://www.bilibili.com", args)
+
     def test_presets_include_size_labels(self):
         formats = [
             {
