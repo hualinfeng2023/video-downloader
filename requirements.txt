@@ -1,0 +1,2 @@
+yt-dlp[default,curl-cffi,deno]>=2026.6.9
+imageio-ffmpeg>=0.6.0
