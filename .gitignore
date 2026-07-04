@@ -1,0 +1,6 @@
+downloads/
+.venv/
+.verify-download/
+__pycache__/
+*.pyc
+server.*.log
