@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Video Downloader</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace" aria-label="视频下载工作台">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Video Downloader</p>
+            <h1>流媒体视频下载</h1>
+          </div>
+          <div class="health" id="healthBadge">检测环境中</div>
+        </header>
+
+        <section class="download-panel">
+          <form class="url-row" id="inspectForm">
+            <label class="url-field">
+              <span>视频链接</span>
+              <input
+                id="urlInput"
+                name="url"
+                type="url"
+                autocomplete="off"
+                placeholder="粘贴 YouTube、Bilibili 或其他视频链接"
+                required
+              />
+            </label>
+            <button class="primary-button" id="inspectButton" type="submit">识别视频</button>
+          </form>
+
+          <div class="option-grid">
+            <label class="switch-row">
+              <input type="checkbox" id="playlistInput" />
+              <span>下载整个合集</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="subtitleInput" />
+              <span>同时保存字幕</span>
+            </label>
+            <label class="switch-row">
+              <input type="checkbox" id="cookiesInput" />
+              <span>使用浏览器登录状态</span>
+            </label>
+            <div class="browser-field">
+              <span>登录浏览器</span>
+              <select id="cookieBrowserInput" class="native-browser-select" aria-hidden="true" tabindex="-1">
+                <option value="chrome">Chrome</option>
+                <option value="edge">Edge</option>
+                <option value="firefox">Firefox</option>
+              </select>
+              <div class="browser-picker" id="browserPicker">
+                <button
+                  class="browser-picker-button"
+                  id="browserPickerButton"
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                >
+                  <span class="browser-icon chrome" id="browserPickerIcon" aria-hidden="true"></span>
+                  <span id="browserPickerLabel">Chrome</span>
+                  <span class="browser-caret" aria-hidden="true"></span>
+                </button>
+                <div class="browser-picker-menu" id="browserPickerMenu" role="listbox" hidden>
+                  <button type="button" role="option" data-browser="chrome" aria-selected="true">
+                    <span class="browser-icon chrome" aria-hidden="true"></span>
+                    <span>Chrome</span>
+                  </button>
+                  <button type="button" role="option" data-browser="edge" aria-selected="false">
+                    <span class="browser-icon edge" aria-hidden="true"></span>
+                    <span>Edge</span>
+                  </button>
+                  <button type="button" role="option" data-browser="firefox" aria-selected="false">
+                    <span class="browser-icon firefox" aria-hidden="true"></span>
+                    <span>Firefox</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <label class="folder-field">
+              <span>下载目录</span>
+              <input id="outputInput" autocomplete="off" />
+            </label>
+          </div>
+        </section>
+
+        <section class="preview-grid">
+          <article class="preview-card" id="previewCard">
+            <div class="empty-state">
+              <div class="empty-icon">URL</div>
+              <h2>先粘贴视频链接</h2>
+              <p>识别后可以选择清晰度、音频或字幕，再开始下载。</p>
+            </div>
+          </article>
+
+          <aside class="format-panel">
+            <div class="panel-header">
+              <h2>保存方式</h2>
+              <span id="platformLabel">自动识别</span>
+            </div>
+            <div class="preset-list" id="presetList"></div>
+            <button class="download-button" id="downloadButton" disabled>开始下载</button>
+            <p class="policy-note">仅保存你有权下载或备份的内容。</p>
+          </aside>
+        </section>
+      </section>
+
+      <section class="queue-panel" aria-label="下载任务">
+        <div class="queue-header">
+          <div>
+            <p class="eyebrow">Queue</p>
+            <h2>下载任务</h2>
+          </div>
+          <button class="ghost-button" id="openFolderButton">打开文件夹</button>
+        </div>
+        <div class="job-list" id="jobList">
+          <div class="queue-empty">还没有下载任务</div>
+        </div>
+      </section>
+    </main>
+
+    <template id="presetTemplate">
+      <label class="preset-item">
+        <input type="radio" name="preset" />
+        <span>
+          <span class="preset-title">
+            <strong></strong>
+            <em></em>
+          </span>
+          <small></small>
+        </span>
+      </label>
+    </template>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
