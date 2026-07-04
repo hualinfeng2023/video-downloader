@@ -384,7 +384,14 @@ def ytdlp_network_args(url: str) -> list[str]:
         "30",
     ]
     if platform == "bilibili":
-        args.extend(["--referer", "https://www.bilibili.com/"])
+        args.extend(
+            [
+                "--referer",
+                "https://www.bilibili.com/",
+                "--add-header",
+                "Origin:https://www.bilibili.com",
+            ]
+        )
     return args
 
 
