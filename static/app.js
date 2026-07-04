@@ -107,7 +107,7 @@ function setBusy(isBusy) {
 
 function renderPreview(video) {
   const thumbnail = video.thumbnail
-    ? `<img src="${escapeAttr(video.thumbnail)}" alt="">`
+    ? `<img src="${escapeAttr(video.thumbnail)}" alt="" referrerpolicy="no-referrer">`
     : `<div class="empty-state"><div class="empty-icon">VIDEO</div></div>`;
   const uploader = video.uploader ? `<span>${escapeHtml(video.uploader)}</span>` : "";
   const heights = video.heights?.length
