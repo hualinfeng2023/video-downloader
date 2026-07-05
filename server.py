@@ -102,6 +102,9 @@ class DownloadJob:
     output_dir: str = ""
     files: list[str] = field(default_factory=list)
     error: str = ""
+    diagnosis: dict[str, Any] | None = None
+    use_cookies: bool = False
+    cookie_browser: str = "chrome"
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     process: subprocess.Popen[str] | None = field(default=None, repr=False)
@@ -111,6 +114,8 @@ class DownloadJob:
         payload = asdict(self)
         payload.pop("process", None)
         payload.pop("cancel_requested", None)
+        payload.pop("use_cookies", None)
+        payload.pop("cookie_browser", None)
         return payload
 
     def update(self, **values: Any) -> None:
@@ -159,6 +164,61 @@ def detect_platform(url: str) -> dict[str, str]:
     if "vimeo.com" in host:
         return {"key": "vimeo", "label": "Vimeo"}
     return {"key": "stream", "label": "自动识别"}
+
+
+def diagnosis(
+    kind: str,
+    title: str,
+    summary: str,
+    steps: list[str],
+    action: str = "none",
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "title": title,
+        "summary": summary,
+        "steps": steps,
+        "action": action,
+    }
+
+
+def build_guidance(
+    url: str,
+    use_cookies: bool = False,
+    playlist: bool = False,
+    subtitles: bool = False,
+) -> dict[str, Any] | None:
+    platform = detect_platform(url)["key"]
+    if platform in {"bilibili", "youtube", "douyin"} and not use_cookies:
+        platform_label = detect_platform(url)["label"]
+        return diagnosis(
+            "login_recommended",
+            f"{platform_label} 可能需要登录状态",
+            "如果识别或下载失败，通常先启用已登录浏览器能减少 403、会员或风控问题。",
+            [
+                "先用浏览器打开该平台并确认已登录。",
+                "需要时启用“使用浏览器登录状态”。",
+                "选择刚才登录的平台浏览器后再识别或下载。",
+            ],
+            "enable_cookies",
+        )
+    if playlist:
+        return diagnosis(
+            "playlist_notice",
+            "合集下载会花更久",
+            "合集内容更容易遇到单集不可用、登录状态失效或平台限速。",
+            ["如果合集失败，先关闭“下载整个合集”验证单个视频是否可下载。"],
+            "try_again",
+        )
+    if subtitles:
+        return diagnosis(
+            "subtitle_notice",
+            "字幕保存取决于平台提供情况",
+            "有些视频没有字幕，或平台不允许读取自动字幕。",
+            ["如果视频能下载但字幕失败，可以先关闭字幕选项完成视频保存。"],
+            "try_again",
+        )
+    return None
 
 
 def safe_output_dir(raw_output_dir: str | None) -> Path:
@@ -445,6 +505,7 @@ def inspect_video(url: str, use_cookies: bool = False, cookie_browser: str | Non
         "heights": heights[:8],
         "presets": build_presets(formats, data.get("duration")),
         "extractor": data.get("extractor_key") or "",
+        "guidance": build_guidance(data.get("webpage_url") or url, use_cookies),
     }
 
 
@@ -528,12 +589,127 @@ ETA_PATTERN = re.compile(r"\bETA\s+(?P<eta>[0-9:]+)")
 def clean_error(message: str) -> str:
     message = re.sub(r"\s+", " ", message).strip()
     message = message.replace("ERROR:", "").strip()
-    if "403" in message or "Forbidden" in message:
-        message = (
-            f"{message}。平台拒绝了当前请求。请在页面勾选“使用浏览器登录状态”，"
-            "确认所选浏览器已登录该平台后重试；如果仍失败，请更新 yt-dlp。"
-        )
     return message[-800:] if len(message) > 800 else message
+
+
+def diagnose_error(
+    message: str,
+    url: str = "",
+    use_cookies: bool = False,
+    cookie_browser: str | None = None,
+) -> dict[str, Any]:
+    cleaned = clean_error(message)
+    lower = cleaned.lower()
+    platform = detect_platform(url)["key"] if url else "stream"
+    browser = cookie_browser if cookie_browser in COOKIE_BROWSERS else "chrome"
+    browser_label = {"chrome": "Chrome", "edge": "Edge", "firefox": "Firefox"}[browser]
+
+    if "未找到 yt-dlp" in cleaned or "yt-dlp" in lower and "not found" in lower:
+        return diagnosis(
+            "missing_ytdlp",
+            "缺少下载组件",
+            "当前没有找到视频识别和下载所需的组件。",
+            [
+                "先按 README 的下载组件步骤安装或更新组件。",
+                "安装完成后重启本工具再识别视频。",
+            ],
+            "update_components",
+        )
+    if "ffmpeg" in lower and any(token in lower for token in ("not found", "未找到", "unable to obtain file audio codec")):
+        return diagnosis(
+            "missing_ffmpeg",
+            "缺少音视频处理组件",
+            "当前视频可能需要合并或转换格式，但没有可用的音视频处理组件。",
+            [
+                "按 README 的下载组件步骤安装或更新组件。",
+                "安装完成后重启本工具再下载。",
+            ],
+            "update_components",
+        )
+    if platform == "bilibili" and ("412" in cleaned or "precondition" in lower):
+        return diagnosis(
+            "platform_risk",
+            "Bilibili 拒绝了当前请求",
+            "这通常是平台风控校验导致，组件过期或请求环境不完整时更常见。",
+            [
+                "先更新下载组件后重试。",
+                "如果仍失败，启用已登录浏览器状态再识别或下载。",
+            ],
+            "update_components",
+        )
+    if "403" in cleaned or "forbidden" in lower or "sign in" in lower or "login" in lower:
+        steps = [
+            "先用浏览器打开该平台并确认已登录。",
+            f"回到本工具，启用“使用浏览器登录状态”，并选择 {browser_label}。",
+            "重新识别或下载这个链接。",
+        ]
+        if use_cookies:
+            steps[1] = f"确认 {browser_label} 已登录该平台，必要时切换到另一个浏览器。"
+        return diagnosis(
+            "login_required",
+            "可能需要登录状态",
+            "平台拒绝了当前请求，常见原因是登录状态、会员权限、年龄限制或风控校验。",
+            steps,
+            "switch_browser" if use_cookies else "enable_cookies",
+        )
+    if "cookies" in lower or "cookie" in lower or "dpapi" in cleaned or "decrypt" in lower:
+        return diagnosis(
+            "browser_cookie",
+            "无法读取浏览器登录状态",
+            "浏览器的登录数据当前不可读取，可能是浏览器正在运行、加密状态异常或所选浏览器没有登录。",
+            [
+                f"确认 {browser_label} 已登录对应平台。",
+                "关闭浏览器后重试，或切换到另一个已登录浏览器。",
+                "公开视频也可以先关闭登录状态直接识别。",
+            ],
+            "switch_browser",
+        )
+    if any(token in lower for token in ("timed out", "timeout", "connection", "network", "temporary failure")) or "超时" in cleaned:
+        return diagnosis(
+            "network_error",
+            "网络连接不稳定",
+            "视频源响应太慢或连接被中断。",
+            [
+                "先确认浏览器能正常打开该视频页面。",
+                "稍后重新识别或下载。",
+            ],
+            "try_again",
+        )
+    if any(token in lower for token in ("permission denied", "access is denied", "no such file", "invalid argument")) or any(
+        token in cleaned for token in ("权限", "目录", "路径", "拒绝访问")
+    ):
+        return diagnosis(
+            "output_path_error",
+            "保存位置不可用",
+            "当前保存目录可能不存在、没有写入权限，或路径格式不被系统接受。",
+            [
+                "检查“保存位置”是否可写。",
+                "换到桌面、下载文件夹或项目内 downloads 目录后重试。",
+            ],
+            "check_output_dir",
+        )
+    if any(token in lower for token in ("unsupported url", "no suitable extractor", "not currently supported")):
+        return diagnosis(
+            "unsupported_media",
+            "暂时无法解析这个链接",
+            "当前组件还不支持这个页面，或链接不是具体的视频页面。",
+            [
+                "确认链接是完整的视频播放页。",
+                "更新下载组件后再试一次。",
+            ],
+            "update_components",
+        )
+    return diagnosis(
+        "generic_error",
+        "没有完成这次操作",
+        "当前错误无法自动判断原因，但通常可以通过重试、启用登录状态或更新组件解决。",
+        [
+            "确认链接能在浏览器中打开。",
+            "需要登录的平台先启用浏览器登录状态。",
+            "如果反复失败，更新下载组件后重试。",
+        ],
+        "try_again",
+    )
 
 
 def apply_process_line(job: DownloadJob, line: str) -> None:
@@ -573,7 +749,13 @@ def apply_process_line(job: DownloadJob, line: str) -> None:
         return
 
     if "ERROR:" in line:
-        job.update(status="error", error=clean_error(line), message="下载失败")
+        error = clean_error(line)
+        job.update(
+            status="error",
+            error=error,
+            diagnosis=diagnose_error(error, job.url, job.use_cookies, job.cookie_browser),
+            message="下载失败",
+        )
         return
 
     if line.startswith("[download] 100%"):
@@ -603,8 +785,14 @@ def run_download_job(job_id: str, command: list[str]) -> None:
             env=subprocess_env(),
         )
     except Exception as exc:
+        error = clean_error(str(exc))
         with JOBS_LOCK:
-            job.update(status="error", error=str(exc), message="启动下载失败")
+            job.update(
+                status="error",
+                error=error,
+                diagnosis=diagnose_error(error, job.url, job.use_cookies, job.cookie_browser),
+                message="启动下载失败",
+            )
         return
 
     with JOBS_LOCK:
@@ -624,9 +812,11 @@ def run_download_job(job_id: str, command: list[str]) -> None:
         elif return_code == 0:
             job.update(status="done", progress=100.0, message="下载完成")
         elif job.status != "error":
+            error = f"下载进程退出，代码 {return_code}"
             job.update(
                 status="error",
-                error=f"下载进程退出，代码 {return_code}",
+                error=error,
+                diagnosis=diagnose_error(error, job.url, job.use_cookies, job.cookie_browser),
                 message="下载失败",
             )
         job.process = None
@@ -659,6 +849,8 @@ def start_download(payload: dict[str, Any]) -> DownloadJob:
         title=title,
         platform=platform,
         output_dir=str(output_dir),
+        use_cookies=use_cookies,
+        cookie_browser=cookie_browser if cookie_browser in COOKIE_BROWSERS else "chrome",
     )
     with JOBS_LOCK:
         JOBS[job.id] = job
@@ -683,6 +875,19 @@ def read_json(handler: BaseHTTPRequestHandler) -> dict[str, Any]:
     if not raw:
         return {}
     return json.loads(raw.decode("utf-8"))
+
+
+def error_payload(
+    error: Exception | str,
+    url: str = "",
+    use_cookies: bool = False,
+    cookie_browser: str | None = None,
+) -> dict[str, Any]:
+    message = clean_error(str(error))
+    return {
+        "error": message,
+        "diagnosis": diagnose_error(message, url, use_cookies, cookie_browser),
+    }
 
 
 class AppHandler(BaseHTTPRequestHandler):
@@ -722,6 +927,7 @@ class AppHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         path = parsed.path
+        payload: dict[str, Any] = {}
         try:
             payload = read_json(self)
             if path == "/api/inspect":
@@ -749,7 +955,10 @@ class AppHandler(BaseHTTPRequestHandler):
                 return json_response(self, 200, {"ok": True})
             return json_response(self, 404, {"error": "接口不存在"})
         except Exception as exc:
-            return json_response(self, 400, {"error": clean_error(str(exc))})
+            raw_url = str(payload.get("url") or "") if isinstance(payload, dict) else ""
+            use_cookies = bool(payload.get("useCookies")) if isinstance(payload, dict) else False
+            cookie_browser = str(payload.get("cookieBrowser") or "chrome") if isinstance(payload, dict) else "chrome"
+            return json_response(self, 400, error_payload(exc, raw_url, use_cookies, cookie_browser))
 
     def serve_static(self, request_path: str) -> None:
         relative = "index.html" if request_path in {"/", ""} else request_path.lstrip("/")

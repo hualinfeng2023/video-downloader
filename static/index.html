@@ -7,20 +7,104 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <symbol id="icon-alert-triangle" viewBox="0 0 24 24">
+        <path d="M10.3 3.9 1.9 18a2 2 0 0 0 1.7 3h16.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+      </symbol>
+      <symbol id="icon-check-circle" viewBox="0 0 24 24">
+        <path d="M22 11.1V12a10 10 0 1 1-5.9-9.1" />
+        <path d="m9 11 3 3L22 4" />
+      </symbol>
+      <symbol id="icon-circle-dot" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="1" />
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <path d="M7 10l5 5 5-5" />
+        <path d="M12 15V3" />
+      </symbol>
+      <symbol id="icon-folder-open" viewBox="0 0 24 24">
+        <path d="M6 14l1.5-3h12.7a1 1 0 0 1 .9 1.4l-2.1 5.1a2 2 0 0 1-1.8 1.2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v3" />
+      </symbol>
+      <symbol id="icon-link" viewBox="0 0 24 24">
+        <path d="M10 13a5 5 0 0 0 7.1 0l2.8-2.8a5 5 0 0 0-7.1-7.1L11.2 4.7" />
+        <path d="M14 11a5 5 0 0 0-7.1 0l-2.8 2.8a5 5 0 0 0 7.1 7.1l1.6-1.6" />
+      </symbol>
+      <symbol id="icon-music" viewBox="0 0 24 24">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+      </symbol>
+      <symbol id="icon-play-circle" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <path d="m10 8 6 4-6 4Z" />
+      </symbol>
+      <symbol id="icon-refresh-cw" viewBox="0 0 24 24">
+        <path d="M3 12a9 9 0 0 1 15.1-6.6L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-15.1 6.6L3 16" />
+        <path d="M3 21v-5h5" />
+      </symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </symbol>
+      <symbol id="icon-sliders" viewBox="0 0 24 24">
+        <path d="M21 4H14" />
+        <path d="M10 4H3" />
+        <path d="M21 12H12" />
+        <path d="M8 12H3" />
+        <path d="M21 20H16" />
+        <path d="M12 20H3" />
+        <path d="M14 2v4" />
+        <path d="M8 10v4" />
+        <path d="M16 18v4" />
+      </symbol>
+      <symbol id="icon-sparkles" viewBox="0 0 24 24">
+        <path d="m12 3 1.7 4.7L18 9.4l-4.3 1.7L12 16l-1.7-4.9L6 9.4l4.3-1.7Z" />
+        <path d="m5 15 .8 2.2L8 18l-2.2.8L5 21l-.8-2.2L2 18l2.2-.8Z" />
+        <path d="m19 13 .7 1.8 1.8.7-1.8.7L19 19l-.7-1.8-1.8-.7 1.8-.7Z" />
+      </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24">
+        <path d="M20 21a8 8 0 0 0-16 0" />
+        <circle cx="12" cy="7" r="4" />
+      </symbol>
+      <symbol id="icon-video" viewBox="0 0 24 24">
+        <path d="m22 8-6 4 6 4Z" />
+        <rect x="2" y="6" width="14" height="12" rx="2" />
+      </symbol>
+      <symbol id="icon-x-circle" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <path d="m15 9-6 6" />
+        <path d="m9 9 6 6" />
+      </symbol>
+    </svg>
     <main class="app-shell">
       <section class="workspace" aria-label="视频下载工作台">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Video Downloader</p>
-            <h1>流媒体视频下载</h1>
+        <header class="app-header">
+          <div class="brand-lockup">
+            <p class="eyebrow">Local Media Workbench</p>
+            <h1>Video Downloader</h1>
+            <p class="subtitle">粘贴链接，识别内容，选择保存规格。</p>
           </div>
-          <div class="health" id="healthBadge">检测环境中</div>
+          <div class="health" id="healthBadge" role="status">检测环境中</div>
         </header>
 
-        <section class="download-panel">
+        <section class="download-panel" aria-labelledby="sourceTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Source</p>
+              <h2 id="sourceTitle">添加视频来源</h2>
+            </div>
+            <span class="platform-chip" id="platformLabel">自动识别</span>
+          </div>
+
           <form class="url-row" id="inspectForm">
             <label class="url-field">
-              <span>视频链接</span>
+              <span class="field-label">视频链接</span>
               <input
                 id="urlInput"
                 name="url"
@@ -30,80 +114,127 @@
                 required
               />
             </label>
-            <button class="primary-button" id="inspectButton" type="submit">识别视频</button>
+            <button class="primary-button" id="inspectButton" type="submit">
+              <svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg>
+              <span id="inspectButtonLabel">识别视频</span>
+            </button>
           </form>
 
-          <div class="option-grid">
-            <label class="switch-row">
-              <input type="checkbox" id="playlistInput" />
-              <span>下载整个合集</span>
-            </label>
-            <label class="switch-row">
-              <input type="checkbox" id="subtitleInput" />
-              <span>同时保存字幕</span>
-            </label>
-            <label class="switch-row">
-              <input type="checkbox" id="cookiesInput" />
-              <span>使用浏览器登录状态</span>
-            </label>
-            <div class="browser-field">
-              <span>登录浏览器</span>
-              <select id="cookieBrowserInput" class="native-browser-select" aria-hidden="true" tabindex="-1">
-                <option value="chrome">Chrome</option>
-                <option value="edge">Edge</option>
-                <option value="firefox">Firefox</option>
-              </select>
-              <div class="browser-picker" id="browserPicker">
-                <button
-                  class="browser-picker-button"
-                  id="browserPickerButton"
-                  type="button"
-                  aria-haspopup="listbox"
-                  aria-expanded="false"
-                >
-                  <span class="browser-icon chrome" id="browserPickerIcon" aria-hidden="true"></span>
-                  <span id="browserPickerLabel">Chrome</span>
-                  <span class="browser-caret" aria-hidden="true"></span>
-                </button>
-                <div class="browser-picker-menu" id="browserPickerMenu" role="listbox" hidden>
-                  <button type="button" role="option" data-browser="chrome" aria-selected="true">
-                    <span class="browser-icon chrome" aria-hidden="true"></span>
-                    <span>Chrome</span>
+          <div class="source-toolbar">
+            <button
+              class="text-button"
+              id="advancedToggle"
+              type="button"
+              aria-controls="advancedPanel"
+              aria-expanded="false"
+            >
+              <svg class="icon" aria-hidden="true"><use href="#icon-sliders"></use></svg>
+              <span id="advancedToggleLabel">高级设置</span>
+            </button>
+            <span class="output-summary" id="outputSummary">保存到 downloads</span>
+          </div>
+
+          <div class="advanced-panel" id="advancedPanel" hidden>
+            <div class="advanced-note">
+              登录状态只在会员内容、年龄限制或 403 错误时需要。普通公开视频建议先直接识别。
+            </div>
+            <div class="option-grid">
+              <label class="switch-row">
+                <input type="checkbox" id="playlistInput" />
+                <span>下载整个合集</span>
+              </label>
+              <label class="switch-row">
+                <input type="checkbox" id="subtitleInput" />
+                <span>同时保存字幕</span>
+              </label>
+              <label class="switch-row emphasis">
+                <input type="checkbox" id="cookiesInput" />
+                <span>使用浏览器登录状态</span>
+              </label>
+              <div class="browser-field">
+                <span class="field-label">登录浏览器</span>
+                <select id="cookieBrowserInput" class="native-browser-select" aria-hidden="true" tabindex="-1">
+                  <option value="chrome">Chrome</option>
+                  <option value="edge">Edge</option>
+                  <option value="firefox">Firefox</option>
+                </select>
+                <div class="browser-picker" id="browserPicker">
+                  <button
+                    class="browser-picker-button"
+                    id="browserPickerButton"
+                    type="button"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                  >
+                    <span class="browser-icon chrome" id="browserPickerIcon" aria-hidden="true"></span>
+                    <span id="browserPickerLabel">Chrome</span>
+                    <span class="browser-caret" aria-hidden="true"></span>
                   </button>
-                  <button type="button" role="option" data-browser="edge" aria-selected="false">
-                    <span class="browser-icon edge" aria-hidden="true"></span>
-                    <span>Edge</span>
-                  </button>
-                  <button type="button" role="option" data-browser="firefox" aria-selected="false">
-                    <span class="browser-icon firefox" aria-hidden="true"></span>
-                    <span>Firefox</span>
-                  </button>
+                  <div class="browser-picker-menu" id="browserPickerMenu" role="listbox" hidden>
+                    <button type="button" role="option" data-browser="chrome" aria-selected="true">
+                      <span class="browser-icon chrome" aria-hidden="true"></span>
+                      <span>Chrome</span>
+                    </button>
+                    <button type="button" role="option" data-browser="edge" aria-selected="false">
+                      <span class="browser-icon edge" aria-hidden="true"></span>
+                      <span>Edge</span>
+                    </button>
+                    <button type="button" role="option" data-browser="firefox" aria-selected="false">
+                      <span class="browser-icon firefox" aria-hidden="true"></span>
+                      <span>Firefox</span>
+                    </button>
+                  </div>
                 </div>
               </div>
+              <label class="folder-field">
+                <span class="field-label">保存位置</span>
+                <input id="outputInput" autocomplete="off" />
+              </label>
             </div>
-            <label class="folder-field">
-              <span>下载目录</span>
-              <input id="outputInput" autocomplete="off" />
-            </label>
           </div>
+
+          <div class="status-region" id="statusRegion" role="status" aria-live="polite"></div>
+          <div class="guidance-panel" id="guidancePanel" hidden></div>
         </section>
 
-        <section class="preview-grid">
+        <section class="work-grid">
           <article class="preview-card" id="previewCard">
             <div class="empty-state">
-              <div class="empty-icon">URL</div>
-              <h2>先粘贴视频链接</h2>
-              <p>识别后可以选择清晰度、音频或字幕，再开始下载。</p>
+              <div class="preview-frame" aria-hidden="true">
+                <div class="preview-frame-top"></div>
+                <div class="preview-frame-play">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-play-circle"></use></svg>
+                </div>
+                <div class="preview-frame-line wide"></div>
+                <div class="preview-frame-line"></div>
+              </div>
+              <p class="eyebrow">Preview</p>
+              <h2>等待识别</h2>
+              <p>识别后这里会显示封面、标题、作者和时长。</p>
             </div>
           </article>
 
           <aside class="format-panel">
             <div class="panel-header">
-              <h2>保存方式</h2>
-              <span id="platformLabel">自动识别</span>
+              <div>
+                <p class="eyebrow">Output</p>
+                <h2>保存规格</h2>
+              </div>
+              <span>识别后选择</span>
             </div>
-            <div class="preset-list" id="presetList"></div>
-            <button class="download-button" id="downloadButton" disabled>开始下载</button>
+            <div class="preset-list" id="presetList">
+              <div class="format-empty">
+                <span class="empty-icon" aria-hidden="true">
+                  <svg class="icon" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+                </span>
+                <strong>还没有可选规格</strong>
+                <span>先识别视频，再选择最佳画质、MP4 或仅音频。</span>
+              </div>
+            </div>
+            <button class="download-button" id="downloadButton" disabled>
+              <svg class="icon" aria-hidden="true"><use href="#icon-download"></use></svg>
+              <span id="downloadButtonLabel">开始下载</span>
+            </button>
             <p class="policy-note">仅保存你有权下载或备份的内容。</p>
           </aside>
         </section>
@@ -112,11 +243,15 @@
       <section class="queue-panel" aria-label="下载任务">
         <div class="queue-header">
           <div>
-            <p class="eyebrow">Queue</p>
+            <p class="eyebrow">Tasks</p>
             <h2>下载任务</h2>
           </div>
-          <button class="ghost-button" id="openFolderButton">打开文件夹</button>
+          <button class="ghost-button" id="openFolderButton">
+            <svg class="icon" aria-hidden="true"><use href="#icon-folder-open"></use></svg>
+            <span>打开文件夹</span>
+          </button>
         </div>
+        <p class="queue-summary" id="queueSummary">暂无进行中的下载</p>
         <div class="job-list" id="jobList">
           <div class="queue-empty">还没有下载任务</div>
         </div>
@@ -126,10 +261,14 @@
     <template id="presetTemplate">
       <label class="preset-item">
         <input type="radio" name="preset" />
-        <span>
+        <span class="preset-icon" aria-hidden="true"></span>
+        <span class="preset-copy">
           <span class="preset-title">
             <strong></strong>
-            <em></em>
+            <span class="preset-badges">
+              <span class="recommended-badge" hidden>推荐</span>
+              <em></em>
+            </span>
           </span>
           <small></small>
         </span>
