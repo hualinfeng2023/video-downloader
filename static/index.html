@@ -151,6 +151,10 @@
                 <input type="checkbox" id="cookiesInput" />
                 <span>使用浏览器登录状态</span>
               </label>
+              <label class="switch-row watermark-switch">
+                <input type="checkbox" id="watermarkInput" />
+                <span>启用去水印</span>
+              </label>
               <div class="browser-field">
                 <span class="field-label">登录浏览器</span>
                 <select id="cookieBrowserInput" class="native-browser-select" aria-hidden="true" tabindex="-1">
@@ -190,6 +194,13 @@
                 <span class="field-label">保存位置</span>
                 <input id="outputInput" autocomplete="off" />
               </label>
+              <fieldset class="watermark-region" id="watermarkRegion" disabled>
+                <legend>水印区域（像素）</legend>
+                <label><span>X</span><input id="watermarkXInput" type="number" min="0" value="20" /></label>
+                <label><span>Y</span><input id="watermarkYInput" type="number" min="0" value="20" /></label>
+                <label><span>宽</span><input id="watermarkWInput" type="number" min="1" value="220" /></label>
+                <label><span>高</span><input id="watermarkHInput" type="number" min="1" value="90" /></label>
+              </fieldset>
             </div>
           </div>
 
