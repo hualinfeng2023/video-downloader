@@ -10,6 +10,12 @@ const nodes = {
   playlistInput: document.querySelector("#playlistInput"),
   subtitleInput: document.querySelector("#subtitleInput"),
   cookiesInput: document.querySelector("#cookiesInput"),
+  watermarkInput: document.querySelector("#watermarkInput"),
+  watermarkRegion: document.querySelector("#watermarkRegion"),
+  watermarkXInput: document.querySelector("#watermarkXInput"),
+  watermarkYInput: document.querySelector("#watermarkYInput"),
+  watermarkWInput: document.querySelector("#watermarkWInput"),
+  watermarkHInput: document.querySelector("#watermarkHInput"),
   cookieBrowserInput: document.querySelector("#cookieBrowserInput"),
   browserPicker: document.querySelector("#browserPicker"),
   browserPickerButton: document.querySelector("#browserPickerButton"),
@@ -117,6 +123,19 @@ function updateBrowserPicker(value) {
   nodes.browserPickerMenu.querySelectorAll("[data-browser]").forEach((option) => {
     option.setAttribute("aria-selected", String(option.dataset.browser === browser));
   });
+}
+
+function setWatermarkRegionEnabled() {
+  nodes.watermarkRegion.disabled = !nodes.watermarkInput.checked;
+}
+
+function watermarkRegionPayload() {
+  return {
+    x: Number.parseInt(nodes.watermarkXInput.value, 10) || 0,
+    y: Number.parseInt(nodes.watermarkYInput.value, 10) || 0,
+    w: Math.max(1, Number.parseInt(nodes.watermarkWInput.value, 10) || 1),
+    h: Math.max(1, Number.parseInt(nodes.watermarkHInput.value, 10) || 1),
+  };
 }
 
 function setBrowserPickerEnabled() {
@@ -384,6 +403,15 @@ function clientGuidance() {
       action: "try_again",
     };
   }
+  if (nodes.watermarkInput.checked) {
+    return {
+      kind: "watermark_notice",
+      title: "下载完成后会二次处理去水印",
+      summary: "去水印会用 ffmpeg 模糊填充你设置的矩形区域，处理时间取决于视频长度。",
+      steps: ["先估算水印左上角 X/Y 和宽高。", "如果位置不准，请调整区域后重新下载处理。"],
+      action: "try_again",
+    };
+  }
   return null;
 }
 
@@ -518,6 +546,8 @@ async function startDownload() {
         useCookies: nodes.cookiesInput.checked,
         cookieBrowser: nodes.cookieBrowserInput.value,
         outputDir: nodes.outputInput.value.trim(),
+        removeWatermark: nodes.watermarkInput.checked,
+        watermarkRegion: watermarkRegionPayload(),
       }),
     });
     await refreshJobs();
@@ -727,8 +757,13 @@ nodes.cookiesInput.addEventListener("change", () => {
 });
 nodes.playlistInput.addEventListener("change", renderGuidance);
 nodes.subtitleInput.addEventListener("change", renderGuidance);
+nodes.watermarkInput.addEventListener("change", () => {
+  setWatermarkRegionEnabled();
+  renderGuidance();
+});
 updateBrowserPicker(nodes.cookieBrowserInput.value);
 setBrowserPickerEnabled();
+setWatermarkRegionEnabled();
 setAdvancedOpen(false);
 renderGuidance();
 

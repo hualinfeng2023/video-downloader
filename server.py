@@ -33,12 +33,22 @@ LOCAL_SITE_PACKAGES = (
 )
 
 
+def is_windows_path(path: Path) -> bool:
+    text = str(path)
+    return sys.platform.startswith("win") or bool(re.match(r"^[A-Za-z]:[\\/]", text))
+
+
+def platform_path(path: Path) -> str:
+    text = str(path)
+    return text.replace("/", "\\") if is_windows_path(path) else text
+
+
 def resolve_executable(name: str) -> str | None:
-    suffixes = (".exe", "") if sys.platform.startswith("win") else ("",)
+    suffixes = (".exe", "") if is_windows_path(LOCAL_BIN_DIR) else ("",)
     for suffix in suffixes:
         candidate = LOCAL_BIN_DIR / f"{name}{suffix}"
         if candidate.exists():
-            return str(candidate)
+            return platform_path(candidate)
     return shutil.which(name)
 
 
@@ -59,14 +69,15 @@ def resolve_ffmpeg() -> str | None:
     for suffix in suffixes:
         candidate = LOCAL_BIN_DIR / f"ffmpeg{suffix}"
         if candidate.exists():
-            return str(candidate)
+            return platform_path(candidate)
     return resolve_imageio_ffmpeg() or shutil.which("ffmpeg")
 
 
 def subprocess_env() -> dict[str, str]:
     env = os.environ.copy()
     if LOCAL_BIN_DIR.exists():
-        env["PATH"] = f"{LOCAL_BIN_DIR}{os.pathsep}{env.get('PATH', '')}"
+        path_separator = ";" if is_windows_path(LOCAL_BIN_DIR) else os.pathsep
+        env["PATH"] = f"{platform_path(LOCAL_BIN_DIR)}{path_separator}{env.get('PATH', '')}"
     return env
 
 
@@ -109,6 +120,8 @@ class DownloadJob:
     updated_at: float = field(default_factory=time.time)
     process: subprocess.Popen[str] | None = field(default=None, repr=False)
     cancel_requested: bool = False
+    remove_watermark: bool = False
+    watermark_region: dict[str, int] = field(default_factory=dict)
 
     def public(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -116,6 +129,8 @@ class DownloadJob:
         payload.pop("cancel_requested", None)
         payload.pop("use_cookies", None)
         payload.pop("cookie_browser", None)
+        payload.pop("remove_watermark", None)
+        payload.pop("watermark_region", None)
         return payload
 
     def update(self, **values: Any) -> None:
@@ -581,6 +596,84 @@ def build_download_command(
     return command
 
 
+def watermark_region_from_payload(payload: dict[str, Any]) -> dict[str, int]:
+    raw = payload.get("watermarkRegion")
+    raw = raw if isinstance(raw, dict) else {}
+    defaults = {"x": 20, "y": 20, "w": 220, "h": 90}
+    region: dict[str, int] = {}
+    for key, default in defaults.items():
+        try:
+            value = int(raw.get(key, default))
+        except (TypeError, ValueError):
+            value = default
+        region[key] = max(0, value)
+    region["w"] = max(1, region["w"])
+    region["h"] = max(1, region["h"])
+    return region
+
+
+def delogo_filter(region: dict[str, int]) -> str:
+    x = max(0, int(region.get("x", 20)))
+    y = max(0, int(region.get("y", 20)))
+    width = max(1, int(region.get("w", 220)))
+    height = max(1, int(region.get("h", 90)))
+    return f"delogo=x={x}:y={y}:w={width}:h={height}:show=0"
+
+
+def should_process_watermark(path: str) -> bool:
+    return Path(path).suffix.lower() in {".mp4", ".mkv", ".webm", ".mov", ".avi"}
+
+
+def remove_watermark_from_file(path: str, region: dict[str, int]) -> str:
+    if not FFMPEG_PATH:
+        raise RuntimeError("ffmpeg not found")
+    source = Path(path)
+    if not source.exists() or not should_process_watermark(str(source)):
+        return str(source)
+    temp = source.with_name(f"{source.stem}.去水印处理中{source.suffix}")
+    command = [
+        FFMPEG_PATH,
+        "-y",
+        "-i",
+        str(source),
+        "-vf",
+        delogo_filter(region),
+        "-c:a",
+        "copy",
+        str(temp),
+    ]
+    completed = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=subprocess_env(),
+    )
+    if completed.returncode != 0:
+        if temp.exists():
+            temp.unlink()
+        raise RuntimeError(clean_error(completed.stderr or completed.stdout or "去水印处理失败"))
+    temp.replace(source)
+    return str(source)
+
+
+def process_job_watermarks(job: DownloadJob) -> None:
+    if not job.remove_watermark:
+        return
+    if job.preset == "audio_mp3":
+        job.update(message="仅音频任务已跳过去水印")
+        return
+    files = [path for path in job.files if should_process_watermark(path)]
+    if not files:
+        job.update(message="未找到可去水印的视频文件")
+        return
+    for index, path in enumerate(files, start=1):
+        job.update(message=f"正在去水印 {index}/{len(files)}")
+        remove_watermark_from_file(path, job.watermark_region)
+    job.update(message="去水印完成")
+
+
 PROGRESS_PATTERN = re.compile(r"\[download\]\s+(?P<percent>\d+(?:\.\d+)?)%")
 SPEED_PATTERN = re.compile(r"\bat\s+(?P<speed>[^\s]+/s)")
 ETA_PATTERN = re.compile(r"\bETA\s+(?P<eta>[0-9:]+)")
@@ -810,7 +903,17 @@ def run_download_job(job_id: str, command: list[str]) -> None:
         if job.cancel_requested:
             job.update(status="cancelled", message="已取消")
         elif return_code == 0:
-            job.update(status="done", progress=100.0, message="下载完成")
+            try:
+                process_job_watermarks(job)
+                job.update(status="done", progress=100.0, message="下载完成")
+            except Exception as exc:
+                error = clean_error(str(exc))
+                job.update(
+                    status="error",
+                    error=error,
+                    diagnosis=diagnose_error(error, job.url, job.use_cookies, job.cookie_browser),
+                    message="去水印失败",
+                )
         elif job.status != "error":
             error = f"下载进程退出，代码 {return_code}"
             job.update(
@@ -832,6 +935,8 @@ def start_download(payload: dict[str, Any]) -> DownloadJob:
     cookie_browser = str(payload.get("cookieBrowser") or "chrome")
     title = str(payload.get("title") or "视频")
     platform = detect_platform(url)["label"]
+    remove_watermark = bool(payload.get("removeWatermark"))
+    watermark_region = watermark_region_from_payload(payload)
 
     command = build_download_command(
         url,
@@ -851,6 +956,8 @@ def start_download(payload: dict[str, Any]) -> DownloadJob:
         output_dir=str(output_dir),
         use_cookies=use_cookies,
         cookie_browser=cookie_browser if cookie_browser in COOKIE_BROWSERS else "chrome",
+        remove_watermark=remove_watermark,
+        watermark_region=watermark_region,
     )
     with JOBS_LOCK:
         JOBS[job.id] = job

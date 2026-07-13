@@ -178,6 +178,30 @@ class ServerHelpersTest(unittest.TestCase):
         ffmpeg_index = command.index("--ffmpeg-location")
         self.assertEqual(command[ffmpeg_index + 1], "C:/app/ffmpeg.exe")
 
+    def test_watermark_region_defaults_and_filter(self):
+        region = server.watermark_region_from_payload({"watermarkRegion": {"x": "12", "w": "0"}})
+
+        self.assertEqual(region, {"x": 12, "y": 20, "w": 1, "h": 90})
+        self.assertEqual(
+            server.delogo_filter(region),
+            "delogo=x=12:y=20:w=1:h=90:show=0",
+        )
+
+    def test_public_job_hides_watermark_settings(self):
+        job = server.DownloadJob(
+            id="test",
+            url="https://example.com/watch",
+            preset="best",
+            output_dir=str(Path.cwd()),
+            remove_watermark=True,
+            watermark_region={"x": 1, "y": 2, "w": 3, "h": 4},
+        )
+
+        payload = job.public()
+
+        self.assertNotIn("remove_watermark", payload)
+        self.assertNotIn("watermark_region", payload)
+
 
 if __name__ == "__main__":
     unittest.main()
